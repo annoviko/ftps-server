@@ -33,11 +33,11 @@ tcp_transport::tcp_transport(tcp_transport && other_transport) {
     m_address   = std::move(other_transport.m_address);
     m_port      = std::move(other_transport.m_port);
 
-    other_transport.m_socket    = NULL;
+    other_transport.m_socket    = 0;
 }
 
 
-tcp_transport::~tcp_transport(void) { }
+tcp_transport::~tcp_transport(void) { std::cout << "TCP transport destructor" << std::endl; }
 
 
 void tcp_transport::set_buffer_size(const int buffer_size) {
@@ -76,7 +76,7 @@ void tcp_transport::close(void) {
 
 
 void tcp_transport::create_tls_session(void) {
-    m_session = tls_session(m_socket);
+    m_session.bind(m_socket);
 }
 
 
@@ -110,18 +110,23 @@ tcp_client::tcp_client(tcp_client && other_client) : tcp_transport(std::move(oth
 tcp_client::~tcp_client(void) { }
 
 
-void tcp_client::connect_to(const std::string & address, const int port) {
+int tcp_client::connect_to(const std::string & address, const int port) {
+    int operation_result = OPERATION_SUCCESS;
+
     struct sockaddr_in client_address;
     client_address.sin_family = AF_INET;
     client_address.sin_port = htons(port);
     client_address.sin_addr.s_addr = inet_addr(address.c_str());
 
     if (connect(m_socket, (struct sockaddr *) &client_address, sizeof(client_address)) < 0) {
-        throw std::runtime_error("impossible to connect to " + address + ":" + std::to_string(port));
+        operation_result = OPERATION_FAILURE;
+    }
+    else {
+        m_address = address;
+        m_port = port;
     }
 
-    m_address = address;
-    m_port = port;
+    return operation_result;
 }
 
 
@@ -132,52 +137,68 @@ tcp_client & tcp_client::operator =(tcp_client && other_transport) {
 
 
 
-tcp_listener::tcp_listener(void) : tcp_transport() { }
+tcp_listener::tcp_listener(void) : tcp_transport(), m_queue_size(0) { }
 
 
 tcp_listener::tcp_listener(const std::string & address, const int port, const int queue_size) {
     m_address = address;
     m_port = port;
-
-    initialize_listener(address, port, queue_size);
+    m_queue_size = queue_size;
 }
 
 
-tcp_listener::tcp_listener(tcp_listener && other_listener) : tcp_transport(std::move(other_listener)) { }
+tcp_listener::tcp_listener(tcp_listener && other_listener) : tcp_transport(std::move(other_listener)) {
+    m_queue_size = std::move(other_listener.m_queue_size);
+    other_listener.m_queue_size = 0;
+}
 
 
 tcp_listener::~tcp_listener(void) { }
 
 
-void tcp_listener::initialize_listener(const std::string & address, const int port, const int queue_size) {
+int tcp_listener::bind(void) {
+    int operation_result = OPERATION_SUCCESS;
+
     struct sockaddr_in ip4_server_address;
     ip4_server_address.sin_family = AF_INET;
-    ip4_server_address.sin_port = htons(port);
+    ip4_server_address.sin_port = htons(m_port);
 
-    inet_pton(AF_INET, address.c_str(), &ip4_server_address.sin_addr);
+    inet_pton(AF_INET, m_address.c_str(), &ip4_server_address.sin_addr);
 
-    if (bind(m_socket, (struct sockaddr *) &ip4_server_address, sizeof(ip4_server_address)) == -1) {
-        throw std::runtime_error("impossible to run server on " + address + ":" + std::to_string(port));
+    if (::bind(m_socket, (struct sockaddr *) &ip4_server_address, sizeof(ip4_server_address)) != 0) {
+        operation_result = OPERATION_FAILURE;
+    }
+    else {
+        listen(m_socket, m_queue_size);
     }
 
-    listen(m_socket, queue_size);
+    return operation_result;
 }
 
 
-void tcp_listener::accept_transport_client(tcp_client & client) const {
+int tcp_listener::accept_transport_client(tcp_client & client) const {
+    int operation_result = OPERATION_SUCCESS;
+
     struct sockaddr_in ipv4_addr_client;
     int ipv4_addr_client_len = sizeof(struct sockaddr_in);
 
     int client_socket = accept(m_socket, (struct sockaddr *) &ipv4_addr_client, (socklen_t *) &ipv4_addr_client_len);
     if (client_socket < 0) {
-        throw std::runtime_error("impossible to accept incoming connection.");
+        operation_result = OPERATION_FAILURE;
+    }
+    else {
+        client = tcp_client(client_socket);
     }
 
-    client = tcp_client(client_socket);
+    return operation_result;
 }
 
 
 tcp_listener & tcp_listener::operator =(tcp_listener && other_transport) {
     static_cast<tcp_transport &>(*this) = std::move(other_transport);
+
+    m_queue_size = std::move(other_transport.m_queue_size);
+    other_transport.m_queue_size = 0;
+
     return *this;
 }

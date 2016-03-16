@@ -50,11 +50,9 @@ void ftp_server::server_thread(void) {
     std::list<std::shared_ptr<ftp_session>> client_sessions;
 
     m_control_channel = tcp_listener(m_address, m_port, 10);
-
-    //tcp_listener listener(m_address, m_port, 10);
-    //m_control_channel = std::move(listener);
-
-    std::cout << "move control channel" << std::endl;
+    if (m_control_channel.bind() != OPERATION_SUCCESS) {
+        throw std::runtime_error("FTP server: impossible to start server");
+    }
 
     m_status = ftp_server_status_t::FTP_SERVER_RUNNING;
 

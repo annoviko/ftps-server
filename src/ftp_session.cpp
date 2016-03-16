@@ -214,14 +214,7 @@ void ftp_session::command_pass(const ftp_command & input_command) {
 
     m_user.set_password(password);
 
-    try {
-        m_user = ftp_user_database::get_user(m_user.login(), m_user.password());
-        m_folder = m_user.folder();
-
-        std::string server_message = "230 access is performed\r\n";
-        m_control_channel.push(server_message.c_str(), server_message.length());
-    }
-    catch(std::bad_alloc & e) {
+    if (ftp_user_database::get_user(m_user.login(), m_user.password(), m_user) != OPERATION_SUCCESS) {
         std::string server_message = "430 authentication failure\r\n";
         m_control_channel.push(server_message.c_str(), server_message.length());
 
@@ -231,6 +224,12 @@ void ftp_session::command_pass(const ftp_command & input_command) {
         if (m_auth_attempt > ftp_session::MAX_AUTH_ATTEMPTS) {
             m_state = ftp_session_state_t::FTP_SESSION_TERMINATED;
         }
+    }
+    else {
+        m_folder = m_user.folder();
+
+        std::string server_message = "230 access is performed\r\n";
+        m_control_channel.push(server_message.c_str(), server_message.length());
     }
 }
 
@@ -296,40 +295,35 @@ void ftp_session::command_list(const ftp_command & input_command) {
 
 
 void ftp_session::command_cwd(const ftp_command & input_command) {
-    /* TODO: check state */
+    std::string server_message = "250 CWD command is successful\r\n";;
+
     std::string folder = input_command.get_argument(0);
 
-    try {
-        std::vector<std::string> list_files;
-        std::string path_folder;
+    std::vector<std::string> list_files;
+    std::string path_folder;
 
-        if (path::is_path_rooted(folder)) {
-        	/* full path is specified */
-        	path_folder = folder;
-        }
-        else {
-        	/* relative path is specified */
-        	path_folder = m_folder + folder;
-        }
-
-		std::string canonical_full_path;
-		path::get_canonical_full_path(path_folder, canonical_full_path);
-
-		if (!directory::exists(canonical_full_path)) {
-			throw std::runtime_error("FTP server: CWD specified directory does not exist");
-		}
-
-		m_folder = canonical_full_path;
-
-        std::cout << "FTP server: current directory: " << m_folder << std::endl;
-
-        std::string server_message = "250 CWD command is successful\r\n";
-        m_control_channel.push(server_message.c_str(), server_message.length());
+    if (path::is_path_rooted(folder)) {
+        /* full path is specified */
+        path_folder = folder;
     }
-    catch(...) {
-        std::string server_control_message = "553 CWD folder is not found\r\n";
-        m_control_channel.push(server_control_message.c_str(), server_control_message.length());
+    else {
+        /* relative path is specified */
+        path_folder = m_folder + folder;
     }
+
+    std::string canonical_full_path;
+    path::get_canonical_full_path(path_folder, canonical_full_path);
+
+    if (directory::exists(canonical_full_path)) {
+        server_message = "553 CWD folder is not found\r\n";
+    }
+    else {
+        m_folder = canonical_full_path;
+
+        std::cout << "FTP server: current directory for user: " << m_folder << std::endl;
+    }
+
+    m_control_channel.push(server_message.c_str(), server_message.length());
 }
 
 
@@ -459,47 +453,50 @@ void ftp_session::command_pasv(const ftp_command & input_command) {
 
     tcp_listener listener;
     bool allocation_flag = false;
-    for (int attempt = 0; attempt < 5 || allocation_flag != true; attempt++) {
-        try {
-            listener = tcp_listener(address, port, 1);
-            allocation_flag = true;
-        }
-        catch(...) {
+    for (int attempt = 0; attempt < 20; attempt++) {
+        listener = tcp_listener(address, port, 1);
+        if (listener.bind() != OPERATION_SUCCESS) {
             std::cout << "FTP server: attempt to get port " << port << " is failed, try to take next" << std::endl;
             port = DATA_PORT_ALLOCATION++;
+        }
+        else {
+            allocation_flag = true;
+            break;
         }
     }
 
     if (!allocation_flag) {
-        throw std::runtime_error("FTP server: impossible to open data channel");
+        std::string server_message = "500 PASV command if failure";
+        m_control_channel.push(server_message.c_str(), server_message.length());
     }
+    else {
+        int high_port_byte = (port & 0xFF00) >> 8;
+        int low_port_byte = (port & 0x00FF);
 
-    int high_port_byte = (port & 0xFF00) >> 8;
-    int low_port_byte = (port & 0x00FF);
+        std::string formater_address = address;
+        std::replace(formater_address.begin(), formater_address.end(), '.', ',');
 
-    std::string formater_address = address;
-    std::replace(formater_address.begin(), formater_address.end(), '.', ',');
+        std::string server_message = "227 Entering Passive Mode (" + formater_address + "," + std::to_string(high_port_byte) + "," + std::to_string(low_port_byte) + ")\r\n";
+        std::cout << server_message << std::endl;
 
-    std::string server_message = "227 Entering Passive Mode (" + formater_address + "," + std::to_string(high_port_byte) + "," + std::to_string(low_port_byte) + ")\r\n";
-    std::cout << server_message << std::endl;
+        m_control_channel.push(server_message.c_str(), server_message.length());
 
-    m_control_channel.push(server_message.c_str(), server_message.length());
+        std::cout << "FTP server: passive mode data channel is allocated." << std::endl;
 
-    std::cout << "FTP server: passive mode data channel is allocated." << std::endl;
+        tcp_client client_data_channel;
+        listener.accept_transport_client(client_data_channel);
 
-    tcp_client client_data_channel;
-    listener.accept_transport_client(client_data_channel);
+        std::cout << "FTP server: passive mode incoming data connection." << std::endl;
 
-    std::cout << "FTP server: passive mode incoming data connection." << std::endl;
+        m_data_channel = std::move(client_data_channel);
 
-    m_data_channel = std::move(client_data_channel);
+        if ( (m_control_channel.secure()) && (m_protection_level == ftp_protection_t::FTP_PROTECTION_PRIVATE) ) {
+            /* create TLS session for data channel */
+            m_data_channel.create_tls_session();
+        }
 
-    if ( (m_control_channel.secure()) && (m_protection_level == ftp_protection_t::FTP_PROTECTION_PRIVATE) ) {
-        /* create TLS session for data channel */
-        m_data_channel.create_tls_session();
+        listener.close();
     }
-
-    listener.close();
 }
 
 
@@ -513,25 +510,21 @@ void ftp_session::command_allo(const ftp_command & input_command) {
 
 void ftp_session::command_dele(const ftp_command & input_command) {
     std::string path = input_command.get_argument(0);
+    std::string server_message = "250 DELE command is successful\r\n";
 
-    try {
-        std::string file_path;
-        if (!path::is_path_rooted(path)) {
-            file_path = m_folder + path;
-        }
-        else {
-            path::get_canonical_full_path(path, file_path);
-        }
-
-        file::erase(file_path);
-
-        std::string server_message = "250 DELE command is successful\r\n";
-        m_control_channel.push(server_message.c_str(), server_message.length());
+    std::string file_path;
+    if (!path::is_path_rooted(path)) {
+        file_path = m_folder + path;
     }
-    catch(...) {
-        std::string server_message = "500 DELE command is failure\r\n";
-        m_control_channel.push(server_message.c_str(), server_message.length());
+    else {
+        path::get_canonical_full_path(path, file_path);
     }
+
+    if (file::erase(file_path) != OPERATION_SUCCESS) {
+        std::string server_message = "250 DELE command is failure\r\n";
+    }
+
+    m_control_channel.push(server_message.c_str(), server_message.length());
 }
 
 
@@ -563,17 +556,12 @@ void ftp_session::command_rnto(const ftp_command & input_command) {
         input_new_path = m_folder + input_new_path;
     }
 
-    std::string server_message;
+    std::string server_message = "250 RNTO command is successful\r\n";
     if (file::exists(input_new_path) || directory::exists(input_new_path)) {
         server_message = "500 RNTO command is failure (specified file or directory already exists)\r\n";
     }
     else {
-        try {
-            path::move(m_argument, input_new_path);
-
-            server_message = "250 RNTO command is successful\r\n";
-        }
-        catch(...) {
+        if (path::move(m_argument, input_new_path) != OPERATION_SUCCESS) {
             server_message = "500 RNTO command is failure (system error occurs)\r\n";
         }
     }

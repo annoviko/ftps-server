@@ -10,16 +10,17 @@ const std::vector<ftp_user>	ftp_user_database::FTP_USER_DATABASE = {
 };
 
 
-const ftp_user & ftp_user_database::get_user(const std::string & login, const std::string & password) {
+const int ftp_user_database::get_user(const std::string & login, const std::string & password, ftp_user & user) {
     std::cout << "FTP server: search for " << login << ", password: " << password << std::endl;
 
-    for (const ftp_user & user : FTP_USER_DATABASE) {
-        if ( (user.login() == login) && (user.password() == password) ) {
-            return user;
+    for (const ftp_user & candidate : FTP_USER_DATABASE) {
+        if ( (candidate.login() == login) && (candidate.password() == password) ) {
+            user = candidate;
+            return OPERATION_SUCCESS;
         }
     }
 
-    throw std::bad_alloc();
+    return OPERATION_FAILURE;
 }
 
 

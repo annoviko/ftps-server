@@ -19,13 +19,6 @@ tls_session::tls_session(void) :
 }
 
 
-tls_session::tls_session(const int socket_descriptor) {
-    initialize_tls_global_state();
-
-    create_tls_session(socket_descriptor);
-}
-
-
 tls_session::tls_session(tls_session && other_session) {
     m_dh_parameters = other_session.m_dh_parameters;
     m_credentials = other_session.m_credentials;
@@ -38,11 +31,17 @@ tls_session::tls_session(tls_session && other_session) {
 
 
 tls_session::~tls_session(void) {
+    std::cout << "TLS desctuctor" << std::endl;
     free_tls_session();
 }
 
 
-bool tls_session::handshake(void) {
+int tls_session::bind(const int socket_descriptor) {
+    return create_tls_session(socket_descriptor);
+}
+
+
+int tls_session::handshake(void) {
     int tls_handshake_result = 0;
     do {
         tls_handshake_result = gnutls_handshake(m_session);
@@ -81,24 +80,31 @@ void tls_session::close(void) {
 }
 
 
-void tls_session::create_tls_session(const int socket_descriptor) {
-    initialize_credentials();
-    initialize_dh_parameters();
-    initialize_session(socket_descriptor);
+int tls_session::create_tls_session(const int socket_descriptor) {
+    if ( (initialize_credentials() == OPERATION_SUCCESS) &&
+         (initialize_dh_parameters() == OPERATION_SUCCESS) &&
+         (initialize_session(socket_descriptor) == OPERATION_SUCCESS) ) {
+
+        return OPERATION_SUCCESS;
+    }
+
+    return OPERATION_FAILURE;
 }
 
 
-void tls_session::initialize_credentials(void) {
+int tls_session::initialize_credentials(void) {
     std::cout << "TLS session: TLS session creating (DH, credential, session)" << std::endl;
     gnutls_certificate_allocate_credentials(&m_credentials);
 
     if (gnutls_certificate_set_x509_key_file(m_credentials, TLS_SESSION_CERTIFICATE, TLS_SESSION_PRIVATE_KEY, GNUTLS_X509_FMT_PEM) != GNUTLS_E_SUCCESS) {
-        throw std::runtime_error("impossible to get certificate or key");
+        return OPERATION_FAILURE;
     }
+
+    return OPERATION_SUCCESS;
 }
 
 
-void tls_session::initialize_dh_parameters(void) {
+int tls_session::initialize_dh_parameters(void) {
     unsigned int bits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_NORMAL);
 
     gnutls_dh_params_init(&m_dh_parameters);
@@ -106,10 +112,12 @@ void tls_session::initialize_dh_parameters(void) {
     gnutls_dh_params_generate2(m_dh_parameters, bits);
 
     gnutls_certificate_set_dh_params(m_credentials, m_dh_parameters);
+
+    return OPERATION_SUCCESS;
 }
 
 
-void tls_session::initialize_session(const int socket_descriptor) {
+int tls_session::initialize_session(const int socket_descriptor) {
     gnutls_init(&m_session, GNUTLS_SERVER);
 
     gnutls_priority_t priority;
@@ -122,6 +130,8 @@ void tls_session::initialize_session(const int socket_descriptor) {
     gnutls_certificate_server_set_request(m_session, GNUTLS_CERT_IGNORE);
 
     gnutls_transport_set_ptr(m_session, (gnutls_transport_ptr_t) socket_descriptor);
+
+    return OPERATION_SUCCESS;
 }
 
 

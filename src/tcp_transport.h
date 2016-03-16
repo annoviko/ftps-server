@@ -7,6 +7,12 @@
 #include "tls_session.h"
 
 
+
+#define OPERATION_SUCCESS       0
+#define OPERATION_FAILURE       -1
+
+
+
 class tcp_transport {
 private:
     int                 m_socket;
@@ -71,7 +77,7 @@ public:
     virtual ~tcp_client(void);
 
 public:
-    virtual void connect_to(const std::string & address, const int port);
+    virtual int connect_to(const std::string & address, const int port);
 
 public:
     tcp_client & operator=(const tcp_client & other_client) = delete;
@@ -82,6 +88,9 @@ public:
 
 
 class tcp_listener : public tcp_transport {
+private:
+    int     m_queue_size;
+
 public:
     tcp_listener(void);
 
@@ -94,10 +103,9 @@ public:
     virtual ~tcp_listener(void);
 
 public:
-    virtual void accept_transport_client(tcp_client & client) const;
+    virtual int bind(void);
 
-private:
-    void initialize_listener(const std::string & address, const int port, const int queue_size);
+    virtual int accept_transport_client(tcp_client & client) const;
 
 public:
     tcp_listener & operator=(const tcp_listener & other_transport) = delete;

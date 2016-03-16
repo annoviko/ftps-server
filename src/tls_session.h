@@ -6,6 +6,10 @@
 #include <gnutls/gnutlsxx.h>
 
 
+#define OPERATION_SUCCESS       0
+#define OPERATION_FAILURE       -1
+
+
 class tls_session {
 private:
     const static char *       TLS_SESSION_CERTIFICATE;
@@ -20,8 +24,6 @@ private:
 public:
     tls_session(void);
 
-    tls_session(const int socket_descriptor);
-
     tls_session(const tls_session & other_session) = delete;
 
     tls_session(tls_session && other_session);
@@ -29,7 +31,9 @@ public:
     virtual ~tls_session(void);
 
 public:
-    virtual bool handshake(void);
+    virtual int bind(const int socket_descriptor);
+
+    virtual int handshake(void);
 
     virtual size_t push(const char * byte_sequence, const size_t sequence_length) const;
 
@@ -38,13 +42,13 @@ public:
     virtual void close(void);
 
 private:
-    void create_tls_session(const int socket_descriptor);
+    int create_tls_session(const int socket_descriptor);
 
-    void initialize_credentials(void);
+    int initialize_credentials(void);
 
-    void initialize_dh_parameters(void);
+    int initialize_dh_parameters(void);
 
-    void initialize_session(const int socket_descriptor);
+    int initialize_session(const int socket_descriptor);
 
     void free_tls_session(void);
 
