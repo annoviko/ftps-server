@@ -25,9 +25,9 @@ int ftp_session::DATA_PORT_ALLOCATION = 40150;
 ftp_session::ftp_session(tcp_client & client_control_channel, ftp_notifier * notifier) :
         m_transfer_type(ftp_transfer_t::TYPE_TRANSFER_BINARY),
         m_state(ftp_session_state_t::FTP_SESSION_AUTH_WAIT_LOGIN),
+        m_notifier(notifier),
         m_control_channel(std::move(client_control_channel)),
-        m_auth_attempt(0),
-        m_notifier(notifier)
+        m_auth_attempt(0)
 {
     std::cout << "SESSION CONSTRUCTOR IS CALLED" << std::endl;
 
@@ -235,6 +235,7 @@ void ftp_session::command_pass(const ftp_command & input_command) {
 
 
 void ftp_session::command_syst(const ftp_command & input_command) {
+    (void) input_command;
     /* TODO: check state */
     std::string server_message = "215 UNIX Type: L8\r\n";
     m_control_channel.push(server_message.c_str(), server_message.length());
@@ -242,6 +243,7 @@ void ftp_session::command_syst(const ftp_command & input_command) {
 
 
 void ftp_session::command_pwd(const ftp_command & input_command) {
+    (void) input_command;
     /* TODO: check state */
     std::string server_message = "257 " + m_folder + "\r\n";
     m_control_channel.push(server_message.c_str(), server_message.length());
@@ -270,6 +272,8 @@ void ftp_session::command_port(const ftp_command & input_command) {
 
 
 void ftp_session::command_list(const ftp_command & input_command) {
+    (void) input_command;
+
     /* TODO: check state */
     std::vector<std::string> list_files;
     directory::get_files(m_folder, list_files);
@@ -394,6 +398,8 @@ void ftp_session::command_type(const ftp_command & input_command) {
 
 
 void ftp_session::command_feat(const ftp_command & input_command) {
+    (void) input_command;
+
     std::string server_message = "211 FEAT Extensions supported:\n AUTH TLS\n PBSZ\n PROT\n211 END\r\n";
     m_control_channel.push(server_message.c_str(), server_message.length());
 }
@@ -448,6 +454,8 @@ void ftp_session::command_prot(const ftp_command & input_command) {
 
 
 void ftp_session::command_pasv(const ftp_command & input_command) {
+    (void) input_command;
+
     std::string address("127.0.0.1");
     int port = DATA_PORT_ALLOCATION++;
 
@@ -571,5 +579,6 @@ void ftp_session::command_rnto(const ftp_command & input_command) {
 
 
 void ftp_session::command_quit(const ftp_command & input_command) {
+    (void) input_command;
     m_state = ftp_session_state_t::FTP_SESSION_TERMINATED;
 }

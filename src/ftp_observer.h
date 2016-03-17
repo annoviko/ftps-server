@@ -6,6 +6,9 @@
 #include "ftp_command.h"
 
 
+#define OPERATION_SUCCESS       0
+#define OPERATION_FAILURE       -1
+
 
 enum class ftp_observe_event_t {
     FTP_EVENT_FILE_PUT,
@@ -40,9 +43,9 @@ public:
     ~ftp_notifier(void);
 
 public:
-    void register_observer(const ftp_observer * observer, const ftp_observe_event_t & event);
+    int register_observer(const ftp_observer * observer, const ftp_observe_event_t & event);
 
-    void unregister_observer(const ftp_observer * observer, const ftp_observe_event_t & event);
+    int unregister_observer(const ftp_observer * observer, const ftp_observe_event_t & event);
 
     void notify_observers(const ftp_observe_event_t & event, const std::string & message) const;
 };

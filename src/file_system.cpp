@@ -149,7 +149,7 @@ int file::move(const std::string & path_file1, const std::string & path_file2) {
 
 
 int directory::get_files(const std::string & path, std::vector<std::string> & files) {
-	get_specify_files(path, "", file_t::FILE_ANY, files);
+	return get_specify_files(path, "", file_t::FILE_ANY, files);
 }
 
 

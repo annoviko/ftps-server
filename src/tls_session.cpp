@@ -129,7 +129,7 @@ int tls_session::initialize_session(const int socket_descriptor) {
 
     gnutls_certificate_server_set_request(m_session, GNUTLS_CERT_IGNORE);
 
-    gnutls_transport_set_ptr(m_session, (gnutls_transport_ptr_t) socket_descriptor);
+    gnutls_transport_set_ptr(m_session, (gnutls_transport_ptr_t)(ssize_t) socket_descriptor);
 
     return OPERATION_SUCCESS;
 }

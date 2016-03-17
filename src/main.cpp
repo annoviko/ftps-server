@@ -16,6 +16,9 @@ public:
 };
 
 int main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
 	ftp_server server("127.0.0.1");
 	server.start();
 

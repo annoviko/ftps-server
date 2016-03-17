@@ -21,17 +21,17 @@ public:
 	ftp_user(const std::string & login, const std::string & password, const std::string & folder);
 
 public:
-	const std::string & login(void) const { return m_login; }
+	inline const std::string & login(void) const { return m_login; }
 
-	const std::string & password(void) const { return m_password; }
+	inline const std::string & password(void) const { return m_password; }
 
-	const std::string & folder(void) const { return m_folder; }
+	inline const std::string & folder(void) const { return m_folder; }
 
-	const void set_login(const std::string & login) { m_login = login; }
+	inline void set_login(const std::string & user_login) { m_login = user_login; }
 
-	const void set_password(const std::string & password) { m_password = password; }
+	inline void set_password(const std::string & user_password) { m_password = user_password; }
 
-	const void set_folder(const std::string & folder) { m_folder = folder; }
+	inline void set_folder(const std::string & user_folder) { m_folder = user_folder; }
 
 public:
 	ftp_user & operator=(const ftp_user & other);

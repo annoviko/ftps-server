@@ -10,7 +10,7 @@ const std::vector<ftp_user>	ftp_user_database::FTP_USER_DATABASE = {
 };
 
 
-const int ftp_user_database::get_user(const std::string & login, const std::string & password, ftp_user & user) {
+int ftp_user_database::get_user(const std::string & login, const std::string & password, ftp_user & user) {
     std::cout << "FTP server: search for " << login << ", password: " << password << std::endl;
 
     for (const ftp_user & candidate : FTP_USER_DATABASE) {
