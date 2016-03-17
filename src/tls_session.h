@@ -35,9 +35,9 @@ public:
 
     virtual int handshake(void);
 
-    virtual size_t push(const char * byte_sequence, const size_t sequence_length) const;
+    virtual ssize_t push(const char * byte_sequence, const size_t sequence_length) const;
 
-    virtual size_t pull(const size_t receive_buffer_length, void * receive_buffer) const;
+    virtual ssize_t pull(const size_t receive_buffer_length, void * receive_buffer) const;
 
     virtual void close(void);
 

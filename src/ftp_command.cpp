@@ -4,7 +4,7 @@
 #include <iostream>
 
 
-const std::unordered_map<std::string, ftp_command_t> ftp_command::FTP_MAP_COMMAND = {
+const ftp_command::ftp_cmd_map_t ftp_command::FTP_MAP_COMMAND = {
 		{ "USER",       ftp_command_t::FTP_COMMAND_USER         },
 		{ "PASS",       ftp_command_t::FTP_COMMAND_PASS         },
 		{ "SYST",       ftp_command_t::FTP_COMMAND_SYST         },
@@ -34,12 +34,13 @@ ftp_command::ftp_command(const std::string & command_line) {
 	std::string ascii_command;
 	stream_parser >> ascii_command;
 
-	try {
-		m_command = FTP_MAP_COMMAND.at(ascii_command);
+	ftp_cmd_const_iter_t iter = FTP_MAP_COMMAND.find(ascii_command);
+	if (iter != FTP_MAP_COMMAND.end()) {
+	    m_command = iter->second;
 	}
-	catch(std::out_of_range & exception) {
-		std::cout << "ftp_command: command " << ascii_command << " is unknown." << std::endl;
-		m_command = ftp_command_t::FTP_COMMAND_UNKNOWN;
+	else {
+        std::cout << "ftp_command: command " << ascii_command << " is unknown." << std::endl;
+        m_command = ftp_command_t::FTP_COMMAND_UNKNOWN;
 	}
 
 	switch(m_command) {
@@ -137,6 +138,14 @@ ftp_command::ftp_command(const std::string & command_line) {
             break;
         }
 
+        case ftp_command_t::FTP_COMMAND_SYST:
+        case ftp_command_t::FTP_COMMAND_PWD:
+        case ftp_command_t::FTP_COMMAND_LIST:
+        case ftp_command_t::FTP_COMMAND_QUIT:
+        case ftp_command_t::FTP_COMMAND_FEAT:
+        case ftp_command_t::FTP_COMMAND_PASV:
+        case ftp_command_t::FTP_COMMAND_UNKNOWN:
+        case ftp_command_t::FTP_COMMAND_INCOMPLETE:
         default:
             break;
 	}

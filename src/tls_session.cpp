@@ -61,12 +61,12 @@ int tls_session::handshake(void) {
 }
 
 
-size_t tls_session::push(const char * byte_sequence, const size_t sequence_length) const {
+ssize_t tls_session::push(const char * byte_sequence, const size_t sequence_length) const {
     return gnutls_record_send(m_session, byte_sequence, sequence_length);
 }
 
 
-size_t tls_session::pull(const size_t receive_buffer_length, void * receive_buffer) const {
+ssize_t tls_session::pull(const size_t receive_buffer_length, void * receive_buffer) const {
     return gnutls_record_recv(m_session, receive_buffer, receive_buffer_length);
 }
 

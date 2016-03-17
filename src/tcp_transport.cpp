@@ -45,7 +45,7 @@ void tcp_transport::set_buffer_size(const int buffer_size) {
 }
 
 
-size_t tcp_transport::push(const char * byte_sequence, const size_t sequence_length) const {
+ssize_t tcp_transport::push(const char * byte_sequence, const size_t sequence_length) const {
     if (m_secure) {
         return m_session.push(byte_sequence, sequence_length);
     }
@@ -55,7 +55,7 @@ size_t tcp_transport::push(const char * byte_sequence, const size_t sequence_len
 }
 
 
-size_t tcp_transport::pull(const size_t receive_buffer_length, void * receive_buffer) const {
+ssize_t tcp_transport::pull(const size_t receive_buffer_length, void * receive_buffer) const {
     if (m_secure) {
         return m_session.pull(receive_buffer_length, receive_buffer);
     }
@@ -110,20 +110,20 @@ tcp_client::tcp_client(tcp_client && other_client) : tcp_transport(std::move(oth
 tcp_client::~tcp_client(void) { }
 
 
-int tcp_client::connect_to(const std::string & address, const int port) {
+int tcp_client::connect_to(const std::string & server_address, const int server_port) {
     int operation_result = OPERATION_SUCCESS;
 
     struct sockaddr_in client_address;
     client_address.sin_family = AF_INET;
-    client_address.sin_port = htons(port);
-    client_address.sin_addr.s_addr = inet_addr(address.c_str());
+    client_address.sin_port = htons(server_port);
+    client_address.sin_addr.s_addr = inet_addr(server_address.c_str());
 
     if (connect(m_socket, (struct sockaddr *) &client_address, sizeof(client_address)) < 0) {
         operation_result = OPERATION_FAILURE;
     }
     else {
-        m_address = address;
-        m_port = port;
+        m_address = server_address;
+        m_port = server_port;
     }
 
     return operation_result;
@@ -140,10 +140,10 @@ tcp_client & tcp_client::operator =(tcp_client && other_transport) {
 tcp_listener::tcp_listener(void) : tcp_transport(), m_queue_size(0) { }
 
 
-tcp_listener::tcp_listener(const std::string & address, const int port, const int queue_size) {
-    m_address = address;
-    m_port = port;
-    m_queue_size = queue_size;
+tcp_listener::tcp_listener(const std::string & server_address, const int server_port, const int server_queue_size) {
+    m_address = server_address;
+    m_port = server_port;
+    m_queue_size = server_queue_size;
 }
 
 

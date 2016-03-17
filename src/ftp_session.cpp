@@ -65,7 +65,7 @@ void ftp_session::stop(void) {
 
 
 void ftp_session::client_session_thread(void) {
-    int message_length = 0;
+    ssize_t message_length = 0;
     char client_message[2000];
 
     std::string server_message = "220 FTP server is ready\r\n";
@@ -88,7 +88,7 @@ void ftp_session::client_session_thread(void) {
     if (message_length == 0) {
         std::cout << "FTP session: client disconnected - server client thread is terminated." << std::endl;
     }
-    else if (message_length == -1) {
+    else if (message_length == (ssize_t) -1) {
         std::cout << "FTP session: receive failure - server client thread is terminated." << std::endl;
     }
 
@@ -101,6 +101,8 @@ void ftp_session::client_session_thread(void) {
 
 
 void ftp_session::process_command(const ftp_command & input_command) {
+    std::string server_message = "";
+
     switch(input_command.get_command()) {
         case ftp_command_t::FTP_COMMAND_USER: {
             command_user(input_command);
@@ -178,12 +180,22 @@ void ftp_session::process_command(const ftp_command & input_command) {
             command_quit(input_command);
             break;
         }
-        default: {
-            std::string server_message = "202 command is not supported\r\n";
-            m_control_channel.push(server_message.c_str(), server_message.length());
-
+        case ftp_command_t::FTP_COMMAND_INCOMPLETE: {
+            server_message = "550 command is incomplete\r\n";
             break;
         }
+        case ftp_command_t::FTP_COMMAND_SITE_UTIME: {
+            server_message = "202 command is not supported\r\n";
+            break;
+        }
+        default: {
+            server_message = "500 command is unknown\r\n";
+            break;
+        }
+    }
+
+    if (!server_message.empty()) {
+        m_control_channel.push(server_message.c_str(), server_message.length());
     }
 }
 
@@ -252,22 +264,22 @@ void ftp_session::command_pwd(const ftp_command & input_command) {
 
 void ftp_session::command_port(const ftp_command & input_command) {
     /* TODO: check state */
+    std::string server_message = "220 PORT command is accepted\r\n";
+
     std::string address = input_command.get_argument(0);
     int port = std::stoi(input_command.get_argument(1));
 
-    try {
-        m_data_channel = std::move(tcp_client());
-        m_data_channel.connect_to(address, port);
-
+    m_data_channel = std::move(tcp_client());
+    if (m_data_channel.connect_to(address, port) != OPERATION_SUCCESS) {
+        server_message = "520 PORT cannot create data channel\r\n";
+    }
+    else {
         std::cout << "FTP server: data channel is connected to " << address << ":" << port << std::endl;
 
-        std::string server_message = "220 PORT command is accepted\r\n";
         m_control_channel.push(server_message.c_str(), server_message.length());
     }
-    catch(...) {
-        std::string server_message = "520 PORT cannot create data channel\r\n";
-        m_control_channel.push(server_message.c_str(), server_message.length());
-    }
+
+    m_control_channel.push(server_message.c_str(), server_message.length());
 }
 
 
@@ -345,14 +357,14 @@ void ftp_session::command_stor(const ftp_command & input_command) {
     std::ofstream file_transfer(file_path, transfer_mode);
 
     char receive_buffer[2000];
-    int message_length = 0;
+    ssize_t message_length = 0;
 
     std::string server_control_message = "150 STOR file status is OK\r\n";
     m_control_channel.push(server_control_message.c_str(), server_control_message.length());
 
     if (m_buffer_file_size > 0) {
         /* if we have been asked to allocate place for file than we need to stop receiving by ourself when file is received */
-        int file_total_size = m_buffer_file_size;
+        ssize_t file_total_size = m_buffer_file_size;
         while( ( (message_length = m_data_channel.pull(2000, receive_buffer)) > 0 ) && (file_total_size != 0) ) {
             file_transfer.write(receive_buffer, message_length);
 
@@ -529,7 +541,7 @@ void ftp_session::command_dele(const ftp_command & input_command) {
     }
 
     if (file::erase(file_path) != OPERATION_SUCCESS) {
-        std::string server_message = "250 DELE command is failure\r\n";
+        server_message = "250 DELE command is failure\r\n";
     }
 
     m_control_channel.push(server_message.c_str(), server_message.length());

@@ -34,7 +34,12 @@ enum class ftp_command_t {
 
 class ftp_command {
 private:
-	const static std::unordered_map<std::string, ftp_command_t> 	FTP_MAP_COMMAND;
+    typedef std::unordered_map<std::string, ftp_command_t>                  ftp_cmd_map_t;
+    typedef std::unordered_map<std::string, ftp_command_t>::iterator        ftp_cmd_iter_t;
+    typedef std::unordered_map<std::string, ftp_command_t>::const_iterator  ftp_cmd_const_iter_t;
+
+private:
+	const static ftp_cmd_map_t  FTP_MAP_COMMAND;
 
 
 private:

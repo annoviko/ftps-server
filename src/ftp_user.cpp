@@ -8,10 +8,10 @@ ftp_user::ftp_user(void) :
 { }
 
 
-ftp_user::ftp_user(const std::string & login, const std::string & password, const std::string & folder) :
-    m_login(login),
-    m_password(password),
-    m_folder(folder)
+ftp_user::ftp_user(const std::string & user_login, const std::string & user_password, const std::string & user_folder) :
+    m_login(user_login),
+    m_password(user_password),
+    m_folder(user_folder)
 { }
 
 

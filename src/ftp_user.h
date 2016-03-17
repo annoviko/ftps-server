@@ -18,7 +18,7 @@ public:
 
 	ftp_user(ftp_user && another_user);
 
-	ftp_user(const std::string & login, const std::string & password, const std::string & folder);
+	ftp_user(const std::string & user_login, const std::string & user_password, const std::string & user_folder);
 
 public:
 	inline const std::string & login(void) const { return m_login; }

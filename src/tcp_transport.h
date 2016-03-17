@@ -40,9 +40,9 @@ private:
     virtual ~tcp_transport(void);
 
 public:
-    virtual size_t push(const char * byte_sequence, const size_t sequence_length) const;
+    virtual ssize_t push(const char * byte_sequence, const size_t sequence_length) const;
 
-    virtual size_t pull(const size_t receive_buffer_length, void * receive_buffer) const;
+    virtual ssize_t pull(const size_t receive_buffer_length, void * receive_buffer) const;
 
     virtual void close(void);
 
@@ -77,7 +77,7 @@ public:
     virtual ~tcp_client(void);
 
 public:
-    virtual int connect_to(const std::string & address, const int port);
+    virtual int connect_to(const std::string & server_address, const int server_port);
 
 public:
     tcp_client & operator=(const tcp_client & other_client) = delete;
@@ -94,7 +94,7 @@ private:
 public:
     tcp_listener(void);
 
-    tcp_listener(const std::string & address, const int port, const int queue_size);
+    tcp_listener(const std::string & server_address, const int server_port, const int server_queue_size);
 
     tcp_listener(const tcp_listener & other_listener) = delete;
 
