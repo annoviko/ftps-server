@@ -3,6 +3,8 @@
 
 #include "ftp_user.h"
 #include "tcp_transport.h"
+#include "tcp_client.h"
+#include "tcp_listener.h"
 
 #include "state_machine.h"
 #include "ftp_command.h"
@@ -55,7 +57,7 @@ private:
 
     ftp_notifier *          m_notifier;
 
-    tcp_client          m_control_channel;
+    tcp_transport       m_control_channel;
     tcp_client          m_data_channel;
     int                 m_buffer_file_size;
 
@@ -64,7 +66,7 @@ private:
     ftp_protection_t    m_protection_level;
 
 public:
-    ftp_session(tcp_client & client_control_channel, ftp_notifier * notifier);
+    ftp_session(tcp_transport & client_control_channel, ftp_notifier * notifier);
 
     ftp_session(ftp_session && another_session);
 

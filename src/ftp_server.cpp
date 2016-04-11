@@ -1,6 +1,7 @@
 #include "ftp_server.h"
 #include "ftp_session.h"
 #include "ftp_command.h"
+#include "tcp_transport.h"
 
 
 #include <exception>
@@ -57,8 +58,8 @@ void ftp_server::server_thread(void) {
     m_status = ftp_server_status_t::FTP_SERVER_RUNNING;
 
     while(status() == ftp_server_status_t::FTP_SERVER_RUNNING) {
-        tcp_client client_connection;
-        m_control_channel.accept_transport_client(client_connection);
+        tcp_transport client_connection;
+        m_control_channel.accept(client_connection);
 
         std::cout << "FTP server: incoming connection - create new server client thread." << std::endl;
 

@@ -22,15 +22,13 @@ int ftp_session::DATA_PORT_ALLOCATION = 40150;
 
 //state_machine<ftp_session_state_t, ftp_command_t, std::function<void (void)> > ftp_session::m_ftp_stm;
 
-ftp_session::ftp_session(tcp_client & client_control_channel, ftp_notifier * notifier) :
+ftp_session::ftp_session(tcp_transport & client_control_channel, ftp_notifier * notifier) :
         m_transfer_type(ftp_transfer_t::TYPE_TRANSFER_BINARY),
         m_state(ftp_session_state_t::FTP_SESSION_AUTH_WAIT_LOGIN),
         m_notifier(notifier),
         m_control_channel(std::move(client_control_channel)),
         m_auth_attempt(0)
 {
-    std::cout << "SESSION CONSTRUCTOR IS CALLED" << std::endl;
-
 //    m_ftp_stm.add_transition(ftp_session_state_t::FTP_SESSION_AUTH_WAIT_LOGIN, ftp_command_t::FTP_COMMAND_PWD,
 //                             ftp_session_state_t::FTP_SESSION_AUTH_WAIT_PASSWORD, ftp_session_state_t::FTP_SESSION_AUTH_WAIT_LOGIN,
 //                             std::bind(&ftp_session::command_feat, this));
@@ -41,16 +39,12 @@ ftp_session::ftp_session(tcp_client & client_control_channel, ftp_notifier * not
 
 ftp_session::ftp_session(ftp_session && another_session) {
     /* TODO: only pointers can be used by server, otherwise we have got troubles */
-    std::cout << "SESSION MOVE CONSTRUCTOR IS CALLED" << std::endl;
-
     m_user = std::move(another_session.m_user);
     m_folder = std::move(another_session.m_folder);
 }
 
 
-ftp_session::~ftp_session(void) {
-    std::cout << "SESSION DESTRUCTOR IS CALLED" << std::endl;
-}
+ftp_session::~ftp_session(void) { }
 
 
 void ftp_session::start(void) {
@@ -59,9 +53,7 @@ void ftp_session::start(void) {
 }
 
 
-void ftp_session::stop(void) {
-
-}
+void ftp_session::stop(void) { }
 
 
 void ftp_session::client_session_thread(void) {
@@ -270,7 +262,7 @@ void ftp_session::command_port(const ftp_command & input_command) {
     int port = std::stoi(input_command.get_argument(1));
 
     m_data_channel = std::move(tcp_client());
-    if (m_data_channel.connect_to(address, port) != OPERATION_SUCCESS) {
+    if (m_data_channel.connect(address, port) != OPERATION_SUCCESS) {
         server_message = "520 PORT cannot create data channel\r\n";
     }
     else {
@@ -311,7 +303,7 @@ void ftp_session::command_list(const ftp_command & input_command) {
 
 
 void ftp_session::command_cwd(const ftp_command & input_command) {
-    std::string server_message = "250 CWD command is successful\r\n";;
+    std::string server_message = "250 CWD command is successful\r\n";
 
     std::string folder = input_command.get_argument(0);
 
@@ -321,6 +313,10 @@ void ftp_session::command_cwd(const ftp_command & input_command) {
     if (path::is_path_rooted(folder)) {
         /* full path is specified */
         path_folder = folder;
+    }
+    else if (path::is_path_homed(folder)) {
+        /* full path is specified but with home sign */
+        path_folder = m_user.folder() + folder.substr(2);
     }
     else {
         /* relative path is specified */
@@ -432,7 +428,7 @@ void ftp_session::command_auth(const ftp_command & input_command) {
     std::string server_message = "234 AUTH TLS successful\r\n";
     m_control_channel.push(server_message.c_str(), server_message.length());
 
-    m_control_channel.create_tls_session();
+    m_control_channel.set_tls();
 }
 
 
@@ -468,7 +464,7 @@ void ftp_session::command_prot(const ftp_command & input_command) {
 void ftp_session::command_pasv(const ftp_command & input_command) {
     (void) input_command;
 
-    std::string address("127.0.0.1");
+    std::string address = m_control_channel.address();
     int port = DATA_PORT_ALLOCATION++;
 
     tcp_listener listener;
@@ -503,16 +499,13 @@ void ftp_session::command_pasv(const ftp_command & input_command) {
 
         std::cout << "FTP server: passive mode data channel is allocated." << std::endl;
 
-        tcp_client client_data_channel;
-        listener.accept_transport_client(client_data_channel);
+        listener.accept(m_data_channel);
 
         std::cout << "FTP server: passive mode incoming data connection." << std::endl;
 
-        m_data_channel = std::move(client_data_channel);
-
         if ( (m_control_channel.secure()) && (m_protection_level == ftp_protection_t::FTP_PROTECTION_PRIVATE) ) {
             /* create TLS session for data channel */
-            m_data_channel.create_tls_session();
+            m_data_channel.set_tls();
         }
 
         listener.close();

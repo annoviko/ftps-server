@@ -61,6 +61,15 @@ bool path::is_path_rooted(const std::string & path) {
 }
 
 
+bool path::is_path_homed(const std::string & path) {
+    if (path.substr(0, 1) == "~") {
+        return true;
+    }
+
+    return false;
+}
+
+
 int path::move(const std::string & old_path, const std::string & new_path) {
     int result = OPERATION_SUCCESS;
 

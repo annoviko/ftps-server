@@ -24,6 +24,8 @@ public:
 
 	static bool is_path_rooted(const std::string & path);
 
+	static bool is_path_homed(const std::string & path);
+
 	static int move(const std::string & old_path, const std::string & new_path);
 };
 

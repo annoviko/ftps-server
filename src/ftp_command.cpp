@@ -39,7 +39,7 @@ ftp_command::ftp_command(const std::string & command_line) {
 	    m_command = iter->second;
 	}
 	else {
-        std::cout << "ftp_command: command " << ascii_command << " is unknown." << std::endl;
+        std::cout << "ftp_command: command " << command_line << " is unknown." << std::endl;
         m_command = ftp_command_t::FTP_COMMAND_UNKNOWN;
 	}
 
