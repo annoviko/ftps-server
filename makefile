@@ -11,7 +11,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 DEPENDENCIES = $(OBJECTS:.o=.d)
 
 
-EXECUTABLE = ftps.exe
+EXECUTABLE = ftps
 
 
 .PHONY: ftps

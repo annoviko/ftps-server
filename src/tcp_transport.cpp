@@ -86,6 +86,7 @@ void tcp_transport::close(void) {
 
 void tcp_transport::set_tls(void) {
     m_session.bind(m_socket);
+    m_secure = m_session.handshake();
 }
 
 

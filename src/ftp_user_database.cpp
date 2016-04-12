@@ -6,7 +6,7 @@
 
 std::map<std::string, ftp_user> ftp_user_database::FTP_USER_DATABASE = {
     { "admin", ftp_user("admin", "admin", "/home/") },
-    { "annoviko", ftp_user("annoviko", "12345", "/home/annoviko/") }
+    { "annoviko", ftp_user("annoviko", "12345", "/home/") }
 };
 
 

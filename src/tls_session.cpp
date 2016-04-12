@@ -57,6 +57,8 @@ int tls_session::handshake(void) {
         return false;
     }
 
+    std::cout << "TLS session: handshake is successfully performed." << std::endl;
+
     return true;
 }
 
