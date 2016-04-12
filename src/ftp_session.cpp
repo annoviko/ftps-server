@@ -68,7 +68,7 @@ void ftp_session::client_session_thread(void) {
     while( (m_state != ftp_session_state_t::FTP_SESSION_TERMINATED) &&
            ((message_length = m_control_channel.pull(2000, client_message)) > 0) ) {
 
-        std::cout << "FTP session '" << tid << "': receive command " << client_message << std::endl;
+        std::cout << "FTP session '" << tid << "': receive command " << std::string(client_message, message_length) << "" << std::endl;
 
         /* parse client message */
         std::string client_message_string(client_message);
