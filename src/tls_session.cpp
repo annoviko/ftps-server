@@ -31,7 +31,6 @@ tls_session::tls_session(tls_session && other_session) {
 
 
 tls_session::~tls_session(void) {
-    std::cout << "TLS desctuctor" << std::endl;
     free_tls_session();
 }
 

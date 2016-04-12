@@ -326,7 +326,8 @@ void ftp_session::command_cwd(const ftp_command & input_command) {
     std::string canonical_full_path;
     path::get_canonical_full_path(path_folder, canonical_full_path);
 
-    if (directory::exists(canonical_full_path)) {
+    if (!directory::exists(canonical_full_path)) {
+        std::cout << "FTP server: requested directory '" << path_folder << "' is not found." << std::endl;
         server_message = "553 CWD folder is not found\r\n";
     }
     else {
