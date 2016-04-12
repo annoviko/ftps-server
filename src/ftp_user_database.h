@@ -12,10 +12,14 @@
 
 class ftp_user_database {
 private:
-	static const std::vector<ftp_user>	FTP_USER_DATABASE;
+    static std::map<std::string, ftp_user> FTP_USER_DATABASE;
 
 public:
-	static int get_user(const std::string & login, const std::string & password, ftp_user & user);
+    static int get(const std::string & login, const std::string & password, ftp_user & user);
+
+    static int add(const ftp_user & user);
+
+    static int erase(const ftp_user & user);
 };
 
 
