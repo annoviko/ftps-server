@@ -1,7 +1,5 @@
 #include "tcp_transport.h"
 
-#include "easylogging++.h"
-
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>

@@ -218,7 +218,7 @@ void ftp_session::command_pass(const ftp_command & input_command) {
 
     m_user.set_password(password);
 
-    if (ftp_user_database::get_user(m_user.login(), m_user.password(), m_user) != OPERATION_SUCCESS) {
+    if (ftp_user_database::get(m_user.login(), m_user.password(), m_user) != OPERATION_SUCCESS) {
         std::string server_message = "430 authentication failure\r\n";
         m_control_channel.push(server_message.c_str(), server_message.length());
 

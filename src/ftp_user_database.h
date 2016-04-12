@@ -1,7 +1,7 @@
 #ifndef FTP_USER_DATABASE_H_
 #define FTP_USER_DATABASE_H_
 
-#include <vector>
+#include <map>
 
 #include "ftp_user.h"
 
