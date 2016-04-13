@@ -38,7 +38,7 @@ public:
 
     virtual void close(void);
 
-    virtual void set_tls(void);
+    virtual int set_tls(void);
 
 public:
     inline bool secure(void) { return m_secure; }

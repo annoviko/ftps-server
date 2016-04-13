@@ -84,9 +84,17 @@ void tcp_transport::close(void) {
 }
 
 
-void tcp_transport::set_tls(void) {
-    m_session.bind(m_socket);
-    m_secure = m_session.handshake();
+int tcp_transport::set_tls(void) {
+    if (m_session.bind(m_socket) != OPERATION_SUCCESS) {
+        std::cout << "TCP Transport: impossible to bind TLS session to socket." << std::endl;
+
+        return OPERATION_FAILURE;
+    }
+    else {
+        m_secure = m_session.handshake();
+    }
+
+    return m_secure;
 }
 
 
